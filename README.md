@@ -1,5 +1,74 @@
 # Data-Driven-Astronomy
-Optical Dataset formed after cross matching : https://www.kaggle.com/bhanvimenghani/optical-csv  <br>
+
+Machine learning for automated galaxy classification and photometric redshift prediction using data from the Sloan Digital Sky Survey (SDSS).
+
+## Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run Jupyter notebooks
+jupyter notebook notebooks/
+```
+
+## Repository Structure
+
+```
+Data-Driven-Astronomy/
+├── README.md                          # This file
+├── requirements.txt                   # Python dependencies
+├── .gitignore                         # Git ignore rules
+│
+├── notebooks/                         # Jupyter notebooks (numbered workflow)
+│   ├── 01_catalog_crossmatching.ipynb
+│   ├── 02_galaxy_classification.ipynb
+│   ├── 03_photometric_redshift.ipynb
+│   ├── 04_optical_analysis.ipynb
+│   └── exploratory/                   # Experimental notebooks
+│
+├── src/                               # Source code modules
+│   ├── crossmatch/                    # Catalog cross-matching
+│   │   └── catalog_matching.py
+│   └── models/                        # ML models (future)
+│
+├── data/                              # Data files (see data/README.md)
+│   ├── raw/                           # Original datasets
+│   ├── processed/                     # Cleaned data
+│   └── results/                       # Output files
+│
+├── docs/                              # Documentation and reports
+│   ├── images/                        # Galaxy images by type
+│   │   ├── elliptical/
+│   │   ├── spiral/
+│   │   └── other/
+│   └── reports/
+│       └── project_report.docx
+│
+└── tests/                             # Unit tests (future)
+```
+
+## Features
+
+- **Catalog Cross-Matching**: Match astronomical objects from different surveys (GMRT radio + SDSS optical)
+- **Galaxy Classification**: Classify galaxies into morphological types using Decision Trees
+- **Photometric Redshift**: Estimate galaxy distances from color indices
+- **Feature Engineering**: Color indices (u-g, g-r, r-i, i-z), ellipticity, concentration ratios
+
+## Data Sources
+
+- **SDSS Optical Data**: 370K+ galaxies with 5-band photometry (u, g, r, i, z)
+- **GMRT Radio Data**: ~5,400 radio sources
+- **Optical Dataset** (cross-matched): https://www.kaggle.com/bhanvimenghani/optical-csv
+
+## Technologies
+
+- **Python 3.x** with NumPy, Pandas, Matplotlib
+- **Astropy** for astronomical coordinate calculations
+- **Scikit-learn** for machine learning models
+- **Jupyter** for interactive analysis
+
+---
 
 Classification of Galaxies:
 ---------------------------
