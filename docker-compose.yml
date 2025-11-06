@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: astroml-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=info
+      - MODEL_PATH=/models
+    volumes:
+      - ./models:/models:ro
+      - ./data:/data:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - astroml-network
+
+  # Streamlit Web Interface
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: web
+    container_name: astroml-web
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    command: streamlit run src/astroml/web/streamlit_app.py --server.port=8501
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - astroml-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: astroml-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - astroml-network
+
+  # MLflow Tracking Server (optional)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.0
+    container_name: astroml-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - mlflow-data:/mlflow
+    command: mlflow server --host 0.0.0.0 --port 5000
+    restart: unless-stopped
+    networks:
+      - astroml-network
+
+  # Prometheus for monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: astroml-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployment/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - astroml-network
+
+  # Grafana for dashboards (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: astroml-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./deployment/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - astroml-network
+
+networks:
+  astroml-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  mlflow-data:
+  prometheus-data:
+  grafana-data:

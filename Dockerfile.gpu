@@ -1,0 +1,69 @@
+# GPU-enabled Docker image for AstroML
+# Based on NVIDIA CUDA base image for GPU inference
+
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+
+LABEL maintainer="Data-Driven Astronomy Contributors"
+LABEL description="AstroML GPU - ML for Astronomy with CUDA"
+LABEL version="2.0.0-gpu"
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    python3.11-dev \
+    build-essential \
+    curl \
+    git \
+    libgomp1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symbolic links
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
+
+# Create non-root user
+RUN useradd -m -u 1000 astroml && \
+    mkdir -p /app /data /models && \
+    chown -R astroml:astroml /app /data /models
+
+WORKDIR /app
+
+# Install Poetry
+ENV POETRY_VERSION=1.7.1
+ENV POETRY_HOME=/opt/poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="$POETRY_HOME/bin:$PATH"
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install dependencies with GPU support
+RUN poetry config virtualenvs.create false && \
+    poetry install --without dev --no-root
+
+# Copy application code
+COPY --chown=astroml:astroml src/ /app/src/
+COPY --chown=astroml:astroml configs/ /app/configs/
+
+# Switch to non-root user
+USER astroml
+
+# Expose API port
+EXPOSE 8000
+
+# Set environment variables for GPU
+ENV CUDA_VISIBLE_DEVICES=0
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+
+# Default command
+CMD ["uvicorn", "src.astroml.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
